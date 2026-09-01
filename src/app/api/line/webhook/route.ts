@@ -129,6 +129,14 @@ async function handleText(event: LineMessageEvent, text: string) {
 
   const user = await loadUser(userId);
 
+  // Bare "อัปเดตน้ำหนัก" (e.g. from rich menu) → prompt for a number.
+  if (/^(อัปเดตน้ำหนัก|บอกน้ำหนัก(ล่าสุด)?|น้ำหนัก)$/.test(text)) {
+    await reply(event.replyToken, [
+      { type: "text", text: `พิมพ์น้ำหนักปัจจุบันมาได้เลยครับ เช่น "70" หรือ "70.5" ⚖️`, quickReply: mainQuickReply() },
+    ]);
+    return;
+  }
+
   // Weight logging shortcut: "น้ำหนัก 74" / "74 kg" / "74.5"
   const weight = parseWeight(text);
   if (weight) {
