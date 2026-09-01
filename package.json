@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "richmenu": "node --env-file=.env.local scripts/setup-richmenu.mjs",
+    "richmenu:preview": "node scripts/setup-richmenu.mjs --dry"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.59",
