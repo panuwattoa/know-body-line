@@ -279,6 +279,25 @@ export async function getWeightSeries(userId: string, sinceDate: string) {
   return (data ?? []) as { weight_kg: number; logged_on: string }[];
 }
 
+// ---- usage / rate limiting ----
+
+/** Max food-photo analyses per user per day (Gemini vision cost guard). */
+export const DAILY_IMAGE_LIMIT = 20;
+
+/**
+ * Atomically increment today's image count and return the new value.
+ * Fails open (returns 0 = "allow") if the RPC errors, so a counter hiccup never
+ * blocks a paying user.
+ */
+export async function bumpImageUsage(userId: string, date = bkkToday()): Promise<number> {
+  const { data, error } = await db().rpc("increment_image_usage", { p_user: userId, p_day: date });
+  if (error) {
+    console.error("bumpImageUsage failed", error.message);
+    return 0;
+  }
+  return (data as number) ?? 0;
+}
+
 // ---- reminders ----
 
 export async function seedDefaultReminders(userId: string) {

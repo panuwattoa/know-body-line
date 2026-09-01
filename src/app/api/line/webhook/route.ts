@@ -21,6 +21,8 @@ import {
 import { uploadMealPhoto } from "@/lib/supabase/storage";
 import { compressImage } from "@/lib/media/image";
 import {
+  bumpImageUsage,
+  DAILY_IMAGE_LIMIT,
   getDailyTotals,
   getOrCreateUser,
   getPendingMeal,
@@ -72,9 +74,14 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true });
 }
 
+/** Max characters accepted from a single text message. */
+const MAX_TEXT_LEN = 500;
+
 async function handleEvent(event: LineEvent) {
   const userId = event.source?.userId;
   if (!userId) return;
+  // Only serve 1:1 chats — ignore group/room to avoid noise and abuse.
+  if (event.source?.type && event.source.type !== "user") return;
 
   if (event.type === "follow") {
     const user = await getOrCreateUser(userId, () => getLineProfile(userId));
@@ -110,6 +117,16 @@ async function loadUser(userId: string): Promise<AppUser> {
 
 async function handleText(event: LineMessageEvent, text: string) {
   const userId = event.source.userId!;
+
+  // Guard: reject empty or overly long input before spending any AI calls.
+  if (!text) return;
+  if (text.length > MAX_TEXT_LEN) {
+    await reply(event.replyToken, [
+      { type: "text", text: `ข้อความยาวไปนิดครับ 😅 ลองพิมพ์ชื่อเมนูสั้นๆ หรือถ่ายรูปอาหารมาได้เลย`, quickReply: mainQuickReply() },
+    ]);
+    return;
+  }
+
   const user = await loadUser(userId);
 
   // Weight logging shortcut: "น้ำหนัก 74" / "74 kg" / "74.5"
@@ -160,9 +177,22 @@ async function handleText(event: LineMessageEvent, text: string) {
 
 async function handleImage(event: LineMessageEvent, msg: LineImageMessage) {
   const userId = event.source.userId!;
-  await showLoading(userId, 30);
   const user = await loadUser(userId);
 
+  // Rate limit: cap daily photo analyses before any download/AI cost.
+  const count = await bumpImageUsage(user.id);
+  if (count > DAILY_IMAGE_LIMIT) {
+    await reply(event.replyToken, [
+      {
+        type: "text",
+        text: `วันนี้ถ่ายรูปครบ ${DAILY_IMAGE_LIMIT} รูปแล้วครับ 📸 พักก่อนน้า เดี๋ยวพรุ่งนี้มาลุยต่อ! ระหว่างนี้พิมพ์ชื่อเมนูให้พี่จดแคลได้อยู่นะ ✍️`,
+        quickReply: mainQuickReply(),
+      },
+    ]);
+    return;
+  }
+
+  await showLoading(userId, 30);
   const original = await getMessageContent(msg.id);
   // Compress once, then reuse for both AI analysis and storage.
   const { buffer, mediaType } = await compressImage(original.buffer);
