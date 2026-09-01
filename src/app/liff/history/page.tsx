@@ -14,7 +14,7 @@ interface Meal {
 }
 interface Totals { kcal: number; protein: number; carb: number; fat: number; sodium: number; sugar: number }
 interface Targets { kcal: number; protein: number; carb: number; fat: number; sodium: number; sugar: number }
-interface Res { date: string; meals: Meal[]; totals: Totals; targets: Targets }
+interface Summary { date: string; totals: Totals; targets: Targets }
 
 const MEAL_TH: Record<string, string> = { breakfast: "มื้อเช้า", lunch: "มื้อกลางวัน", dinner: "มื้อเย็น", snack: "มื้อว่าง" };
 
@@ -27,17 +27,27 @@ function shiftDate(d: string, days: number) {
 export default function History() {
   const liff = useLiff(LIFF_ID);
   const [date, setDate] = useState<string>(() => new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10));
-  const [data, setData] = useState<Res | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [meals, setMeals] = useState<Meal[] | null>(null);
+  const [mealsLoading, setMealsLoading] = useState(true);
 
   const load = useCallback(async (d: string) => {
     if (!liff.idToken) return;
-    setLoading(true);
+    // Summary (rings) loads first and fast.
+    setSummaryLoading(true);
+    setMeals(null);
+    setMealsLoading(true);
     try {
-      setData(await apiFetch<Res>(`/api/liff/history?date=${d}`, liff.idToken));
+      setSummary(await apiFetch<Summary>(`/api/liff/history?date=${d}`, liff.idToken));
     } finally {
-      setLoading(false);
+      setSummaryLoading(false);
     }
+    // Meal list streams in separately.
+    apiFetch<{ meals: Meal[] }>(`/api/liff/history/meals?date=${d}`, liff.idToken)
+      .then((r) => setMeals(r.meals))
+      .catch(() => setMeals([]))
+      .finally(() => setMealsLoading(false));
   }, [liff.idToken]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- data-fetch effect syncs with LINE/LIFF
@@ -46,8 +56,8 @@ export default function History() {
   if (!liff.ready) return <Center>กำลังเชื่อมต่อ LINE…</Center>;
   if (liff.error) return <Center>⚠️ {liff.error}</Center>;
 
-  const t = data?.totals ?? { kcal: 0, protein: 0, carb: 0, fat: 0, sodium: 0, sugar: 0 };
-  const g = data?.targets ?? { kcal: 2000, protein: 120, carb: 220, fat: 60, sodium: 2000, sugar: 50 };
+  const t = summary?.totals ?? { kcal: 0, protein: 0, carb: 0, fat: 0, sodium: 0, sugar: 0 };
+  const g = summary?.targets ?? { kcal: 2000, protein: 120, carb: 220, fat: 60, sodium: 2000, sugar: 50 };
   const pct = (a: number, b: number) => (b > 0 ? (a / b) * 100 : 0);
 
   return (
@@ -65,27 +75,40 @@ export default function History() {
       <section className="mt-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
         <div className="flex items-center justify-between">
           <span className="font-semibold text-gray-700">ภาพรวมวันนี้</span>
-          <span className="text-xs text-gray-400">{data?.meals.length ?? 0} รายการ</span>
+          <span className="text-xs text-gray-400">{meals ? `${meals.length} รายการ` : ""}</span>
         </div>
-        <div className="mt-4 flex justify-center">
-          <Ring pct={pct(t.kcal, g.kcal)} label={`${Math.round(t.kcal).toLocaleString()} / ${g.kcal.toLocaleString()} kcal`} size={120} stroke={12} />
-        </div>
-        <div className="mt-4 grid grid-cols-5 gap-1">
-          <Ring pct={pct(t.protein, g.protein)} label="โปรตีน" sub={`${Math.round(t.protein)}g`} size={56} stroke={6} />
-          <Ring pct={pct(t.carb, g.carb)} label="คาร์บ" sub={`${Math.round(t.carb)}g`} size={56} stroke={6} />
-          <Ring pct={pct(t.fat, g.fat)} label="ไขมัน" sub={`${Math.round(t.fat)}g`} size={56} stroke={6} />
-          <Ring pct={pct(t.sodium, g.sodium)} label="โซเดียม" sub={`${Math.round(t.sodium)}mg`} size={56} stroke={6} />
-          <Ring pct={pct(t.sugar, g.sugar)} label="น้ำตาล" sub={`${Math.round(t.sugar)}g`} size={56} stroke={6} />
-        </div>
+        {summaryLoading ? (
+          <div className="flex flex-col items-center py-6">
+            <div className="h-28 w-28 animate-pulse rounded-full bg-gray-100" />
+          </div>
+        ) : (
+          <>
+            <div className="mt-4 flex justify-center">
+              <Ring pct={pct(t.kcal, g.kcal)} label={`${Math.round(t.kcal).toLocaleString()} / ${g.kcal.toLocaleString()} kcal`} size={120} stroke={12} />
+            </div>
+            <div className="mt-4 grid grid-cols-5 gap-1">
+              <Ring pct={pct(t.protein, g.protein)} label="โปรตีน" sub={`${Math.round(t.protein)}g`} size={56} stroke={6} />
+              <Ring pct={pct(t.carb, g.carb)} label="คาร์บ" sub={`${Math.round(t.carb)}g`} size={56} stroke={6} />
+              <Ring pct={pct(t.fat, g.fat)} label="ไขมัน" sub={`${Math.round(t.fat)}g`} size={56} stroke={6} />
+              <Ring pct={pct(t.sodium, g.sodium)} label="โซเดียม" sub={`${Math.round(t.sodium)}mg`} size={56} stroke={6} />
+              <Ring pct={pct(t.sugar, g.sugar)} label="น้ำตาล" sub={`${Math.round(t.sugar)}g`} size={56} stroke={6} />
+            </div>
+          </>
+        )}
       </section>
 
       {/* Meals */}
       <section className="mt-4 space-y-3">
-        {loading && <p className="text-center text-gray-400">กำลังโหลด…</p>}
-        {!loading && (data?.meals.length ?? 0) === 0 && (
+        {mealsLoading && (
+          <>
+            <MealSkeleton />
+            <MealSkeleton />
+          </>
+        )}
+        {!mealsLoading && (meals?.length ?? 0) === 0 && (
           <p className="rounded-2xl bg-gray-50 py-10 text-center text-gray-400">ยังไม่มีมื้ออาหารในวันนี้</p>
         )}
-        {data?.meals.map((m) => (
+        {meals?.map((m) => (
           <article key={m.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
             <div className="flex gap-3">
               <div className="min-w-0 flex-1">
@@ -102,7 +125,7 @@ export default function History() {
               </div>
               {m.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={m.image_url} alt={m.name} className="h-20 w-20 shrink-0 rounded-xl object-cover" />
+                <img src={m.image_url} alt={m.name} loading="lazy" className="h-20 w-20 shrink-0 rounded-xl object-cover" />
               )}
             </div>
             <a href={`/liff/edit?id=${m.id}`} className="mt-3 inline-block text-sm font-semibold text-brand-dark">✏️ แก้ไขรายการ</a>
@@ -113,6 +136,20 @@ export default function History() {
   );
 }
 
+function MealSkeleton() {
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
+      <div className="flex gap-3">
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-1/2 animate-pulse rounded bg-gray-100" />
+          <div className="h-3 w-1/3 animate-pulse rounded bg-gray-100" />
+          <div className="h-6 w-24 animate-pulse rounded bg-gray-100" />
+        </div>
+        <div className="h-20 w-20 shrink-0 animate-pulse rounded-xl bg-gray-100" />
+      </div>
+    </div>
+  );
+}
 function formatThai(d: string) {
   const dt = new Date(d + "T00:00:00");
   return dt.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", weekday: "long" });

@@ -15,8 +15,8 @@ interface Res {
   avgKcal: number;
   bestDay: Day | null;
   watchDay: Day | null;
-  analysis: string;
   goalWeight: number | null;
+  hasData: boolean;
 }
 
 const METRICS = [
@@ -32,12 +32,25 @@ export default function Report() {
   const [metric, setMetric] = useState<(typeof METRICS)[number]["k"]>("kcal");
   const [data, setData] = useState<Res | null>(null);
   const [loading, setLoading] = useState(true);
+  // AI analysis loads lazily so charts appear instantly.
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   const load = useCallback(async (r: number) => {
     if (!liff.idToken) return;
     setLoading(true);
+    setAnalysis(null);
     try {
-      setData(await apiFetch<Res>(`/api/liff/report?range=${r}`, liff.idToken));
+      const res = await apiFetch<Res>(`/api/liff/report?range=${r}`, liff.idToken);
+      setData(res);
+      // Kick off the slow AI analysis only after the fast payload is in.
+      if (res.hasData) {
+        setAnalysisLoading(true);
+        apiFetch<{ analysis: string }>(`/api/liff/report/analysis?range=${r}`, liff.idToken)
+          .then((a) => setAnalysis(a.analysis))
+          .catch(() => setAnalysis(""))
+          .finally(() => setAnalysisLoading(false));
+      }
     } finally {
       setLoading(false);
     }
@@ -107,11 +120,20 @@ export default function Report() {
             )}
           </section>
 
-          {/* Coach analysis */}
-          {data.analysis && (
+          {/* Coach analysis — lazy loaded */}
+          {data.hasData && (
             <section className="mt-4 rounded-2xl bg-[#eaf6df] p-4">
               <p className="font-bold text-brand-dark">💬 คำวิเคราะห์จากโค้ช</p>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{data.analysis}</p>
+              {analysisLoading || analysis === null ? (
+                <div className="mt-3 space-y-2" aria-label="กำลังวิเคราะห์">
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-brand/20" />
+                  <div className="h-3 w-full animate-pulse rounded bg-brand/20" />
+                  <div className="h-3 w-5/6 animate-pulse rounded bg-brand/20" />
+                  <p className="pt-1 text-xs text-brand-dark/70">โค้ชกำลังวิเคราะห์ให้… 🧠</p>
+                </div>
+              ) : (
+                <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{analysis}</p>
+              )}
             </section>
           )}
         </>
