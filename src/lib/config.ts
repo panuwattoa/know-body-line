@@ -28,7 +28,7 @@ export const LIFF_IDS = {
 export const liffUrl = (liffId: string, path = "") =>
   liffId ? `https://liff.line.me/${liffId}${path}` : `${APP_URL}/liff${path}`;
 
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
 /** Brand palette (kept in one place so Flex + web stay in sync). */
 export const COLORS = {

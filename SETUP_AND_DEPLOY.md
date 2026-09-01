@@ -29,7 +29,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_LIFF_ID_REPORT` | LIFF app `/liff/report` | §4 |
 | `NEXT_PUBLIC_LIFF_ID_PROFILE` | LIFF app `/liff/edit` | §4 |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI Studio | §2 |
-| `GEMINI_MODEL` | ค่า default `gemini-2.5-flash` | §2 |
+| `GEMINI_MODEL` | ค่า default `gemini-3.6-flash` | §2 |
 | `SUPABASE_URL` | Supabase → Settings → API | §1 |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API (service_role) | §1 |
 | `CRON_SECRET` | สุ่มเอง (ใช้ตอน deploy) | §6 |
@@ -58,8 +58,8 @@ cp .env.example .env.local
 
 1. ไปที่ https://aistudio.google.com/apikey → **Create API key**
 2. คัดลอกคีย์ → `GOOGLE_GENERATIVE_AI_API_KEY`
-3. ปล่อย `GEMINI_MODEL=gemini-2.5-flash` ไว้ (เร็ว + วิเคราะห์รูปได้ดี)
-   ถ้าต้องการความแม่นสูงขึ้นเปลี่ยนเป็น `gemini-2.5-pro` ได้
+3. ปล่อย `GEMINI_MODEL=gemini-3.6-flash` ไว้ (เร็ว + วิเคราะห์รูปได้ดี)
+   ถ้าต้องการความแม่นสูงขึ้นเปลี่ยนเป็น `gemini-3.6-pro` ได้
 
 ---
 

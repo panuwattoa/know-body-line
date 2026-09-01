@@ -49,7 +49,7 @@ vercel.json                        cron ทุก 15 นาที
 
 ### 2) Google AI Studio
 1. สร้าง API key ที่ https://aistudio.google.com/apikey
-2. ตั้ง `GOOGLE_GENERATIVE_AI_API_KEY` (ค่าเริ่มต้นโมเดล `gemini-2.5-flash`)
+2. ตั้ง `GOOGLE_GENERATIVE_AI_API_KEY` (ค่าเริ่มต้นโมเดล `gemini-3.6-flash`)
 
 ### 3) LINE — Messaging API channel
 1. LINE Developers Console → Provider → สร้าง **Messaging API channel**
