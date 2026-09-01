@@ -348,6 +348,90 @@ export function mainQuickReply(): QuickReply {
   };
 }
 
+/** "เริ่มมื้อแรกยังไง" guidance card. */
+export function howToLogBubble(): FlexBubble {
+  return {
+    type: "bubble",
+    header: {
+      type: "box",
+      layout: "vertical",
+      backgroundColor: COLORS.brand,
+      paddingAll: "16px",
+      contents: [
+        { type: "text", text: "🍽️ เริ่มมื้อแรกกันเลย!", size: "lg", weight: "bold", color: "#ffffff" },
+        { type: "text", text: `${COACH_NAME}จดแคลให้ได้ 2 แบบ`, size: "sm", color: "#ffffff", margin: "sm" },
+      ],
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      spacing: "md",
+      contents: [
+        {
+          type: "box",
+          layout: "vertical",
+          backgroundColor: "#eaf6df",
+          cornerRadius: "10px",
+          paddingAll: "12px",
+          spacing: "sm",
+          contents: [
+            { type: "text", text: "📸 ถ่ายรูป — ง่ายที่สุด", weight: "bold", size: "sm", color: COLORS.brandDark },
+            { type: "text", text: "• รูปอาหารในจาน\n• ฉลากโภชนาการบนซอง\n• บิลร้านอาหาร / เมนู", size: "xs", color: COLORS.text, wrap: true },
+          ],
+        },
+        {
+          type: "box",
+          layout: "vertical",
+          backgroundColor: COLORS.cardBg,
+          cornerRadius: "10px",
+          paddingAll: "12px",
+          spacing: "sm",
+          contents: [
+            { type: "text", text: "⌨️ พิมพ์ชื่อเมนู", weight: "bold", size: "sm", color: COLORS.text },
+            { type: "text", text: "เช่น “ข้าวผัดกระเพราไก่ไข่ดาว”\n“กาแฟเย็น 1 แก้ว”", size: "xs", color: COLORS.subtle, wrap: true },
+          ],
+        },
+      ],
+    },
+    footer: {
+      type: "box",
+      layout: "horizontal",
+      spacing: "sm",
+      contents: [
+        { type: "button", style: "primary", color: COLORS.brand, height: "sm", action: { type: "camera", label: "📸 ถ่ายรูป" } },
+        { type: "button", style: "secondary", height: "sm", action: { type: "cameraRoll", label: "🖼️ คลังรูป" } },
+      ],
+    },
+  };
+}
+
+/** Full message sequence pushed after onboarding is completed. */
+export function onboardingCompleteMessages(opts: {
+  name?: string | null;
+  targets: DailyTargets;
+  fromKg: number;
+  toKg: number;
+}): LineOutgoingMessage[] {
+  const hi = opts.name ? `เยี่ยมเลย ${opts.name}!` : "เยี่ยมเลยครับ!";
+  return [
+    {
+      type: "text",
+      text: `${hi} ตั้งเป้าหมายเสร็จแล้ว 🎯🔥\nต่อจากนี้ ${COACH_NAME} จะดูแลการกินให้ทุกวัน เหลือแค่ก้าวเดียว — เริ่มมื้อแรกกันเลย! 💪`,
+    },
+    {
+      type: "flex",
+      altText: `เป้าหมายรายวัน ${n(opts.targets.target_kcal)} kcal`,
+      contents: goalSummaryBubble({ name: opts.name, targets: opts.targets, fromKg: opts.fromKg, toKg: opts.toKg }),
+    },
+    {
+      type: "flex",
+      altText: "เริ่มมื้อแรก — ถ่ายรูปหรือพิมพ์ชื่อเมนู",
+      contents: howToLogBubble(),
+      quickReply: mainQuickReply(),
+    },
+  ];
+}
+
 /** Welcome + onboarding invitation for new followers. */
 export function welcomeMessages(name?: string | null): LineOutgoingMessage[] {
   const hello = name ? `สวัสดีครับ ${name}!` : "สวัสดีครับ!";

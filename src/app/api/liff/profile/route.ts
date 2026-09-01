@@ -4,7 +4,7 @@ import { authLiff } from "@/lib/line/liff-auth";
 import { getProfile, seedDefaultReminders, setOnboardingState, upsertProfile } from "@/lib/domain/repo";
 import { computeTargets } from "@/lib/domain/nutrition";
 import { push } from "@/lib/line/client";
-import { goalSummaryBubble } from "@/lib/line/flex";
+import { onboardingCompleteMessages } from "@/lib/line/flex";
 
 export const runtime = "nodejs";
 
@@ -57,19 +57,16 @@ export async function POST(req: Request) {
   await setOnboardingState(user.id, "done");
   await seedDefaultReminders(user.id).catch(() => {});
 
-  // Push the goal summary card into the chat (best-effort).
-  push(user.line_user_id, [
-    {
-      type: "flex",
-      altText: `เป้าหมายรายวัน ${targets.target_kcal} kcal`,
-      contents: goalSummaryBubble({
-        name: user.display_name,
-        targets,
-        fromKg: input.weight_kg,
-        toKg: input.target_weight_kg,
-      }),
-    },
-  ]).catch(() => {});
+  // Push the celebratory summary + "how to start" sequence into the chat (best-effort).
+  push(
+    user.line_user_id,
+    onboardingCompleteMessages({
+      name: user.display_name,
+      targets,
+      fromKg: input.weight_kg,
+      toKg: input.target_weight_kg,
+    }),
+  ).catch(() => {});
 
   return NextResponse.json({ ok: true, targets });
 }
