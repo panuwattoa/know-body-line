@@ -86,7 +86,8 @@ export function mealResultBubble(a: FoodAnalysis, remainingKcal?: number): FlexB
         { type: "text", text: a.name, size: "xl", weight: "bold", wrap: true, color: COLORS.text },
         {
           type: "box",
-          layout: "baseline",
+          layout: "horizontal",
+          spacing: "sm",
           contents: [
             {
               type: "box",
@@ -99,7 +100,7 @@ export function mealResultBubble(a: FoodAnalysis, remainingKcal?: number): FlexB
                 { type: "text", text: MEAL_TYPE_TH[a.meal_type] ?? a.meal_type, size: "xs", color: COLORS.brandDark },
               ],
             },
-            { type: "text", text: `~${n(a.portion_g)} g`, size: "xs", color: COLORS.subtle, margin: "md" },
+            { type: "text", text: `~${n(a.portion_g)} g`, size: "xs", color: COLORS.subtle, gravity: "center" },
           ],
         },
         {

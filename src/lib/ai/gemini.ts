@@ -63,8 +63,8 @@ export async function analyzeFoodImage(opts: {
               (opts.hint ? `\n\nผู้ใช้ระบุเพิ่มเติม: ${opts.hint}` : ""),
           },
           {
-            type: "image",
-            image: opts.image,
+            type: "file",
+            data: opts.image,
             mediaType: opts.mediaType ?? "image/jpeg",
           },
         ],
