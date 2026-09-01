@@ -298,6 +298,27 @@ export async function bumpImageUsage(userId: string, date = bkkToday()): Promise
   return (data as number) ?? 0;
 }
 
+// ---- report analysis cache ----
+
+export async function getReportCache(
+  userId: string,
+  range: number,
+): Promise<{ signature: string; analysis: string } | null> {
+  const { data } = await db()
+    .from("report_cache")
+    .select("signature,analysis")
+    .eq("user_id", userId)
+    .eq("range", range)
+    .maybeSingle();
+  return (data as { signature: string; analysis: string }) ?? null;
+}
+
+export async function saveReportCache(userId: string, range: number, signature: string, analysis: string) {
+  await db()
+    .from("report_cache")
+    .upsert({ user_id: userId, range, signature, analysis, updated_at: new Date().toISOString() });
+}
+
 // ---- reminders ----
 
 export async function seedDefaultReminders(userId: string) {

@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { getDailyTotalsRange, getProfile, getTargets, getWeightSeries } from "@/lib/domain/repo";
 import { bkkToday } from "@/lib/domain/time";
 import type { Meal, Profile } from "@/lib/supabase/types";
@@ -77,4 +78,20 @@ export async function buildReport(userId: string, range: 7 | 30): Promise<Report
     logged,
     profile,
   };
+}
+
+/**
+ * Stable fingerprint of the data that feeds the AI analysis. Same intake +
+ * targets + goal → same signature → cached analysis is reused (no model call).
+ */
+export function reportSignature(r: ReportData): string {
+  const basis =
+    r.logged
+      .map(
+        (d) =>
+          `${d.date}:${Math.round(d.kcal)}:${Math.round(d.protein)}:${Math.round(d.carb)}:${Math.round(d.fat)}:${Math.round(d.sodium)}:${Math.round(d.sugar)}`,
+      )
+      .join("|") +
+    `#t:${r.targets.kcal}:${r.targets.protein}#g:${r.profile?.goal ?? ""}`;
+  return crypto.createHash("sha1").update(basis).digest("hex");
 }

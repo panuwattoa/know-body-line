@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { authLiff } from "@/lib/line/liff-auth";
-import { buildReport } from "@/lib/domain/report";
+import { buildReport, reportSignature } from "@/lib/domain/report";
+import { getReportCache, saveReportCache } from "@/lib/domain/repo";
 import { coachReply } from "@/lib/ai/gemini";
 import { GOAL_LABELS_TH } from "@/lib/domain/nutrition";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-/** Slow part: the coach's written analysis. Fetched lazily by the report page. */
+/** Slow part: the coach's written analysis. Cached by data signature. */
 export async function GET(req: Request) {
   const user = await authLiff(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -17,6 +18,13 @@ export async function GET(req: Request) {
 
   if (!r.logged.length) {
     return NextResponse.json({ analysis: "" });
+  }
+
+  // Reuse the cached analysis when the underlying data hasn't changed.
+  const signature = reportSignature(r);
+  const cached = await getReportCache(user.id, range);
+  if (cached && cached.signature === signature) {
+    return NextResponse.json({ analysis: cached.analysis, cached: true });
   }
 
   const summary = r.logged
@@ -32,5 +40,6 @@ export async function GET(req: Request) {
     task: "general",
   });
 
-  return NextResponse.json({ analysis });
+  await saveReportCache(user.id, range, signature, analysis).catch(() => {});
+  return NextResponse.json({ analysis, cached: false });
 }
