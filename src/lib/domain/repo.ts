@@ -294,22 +294,40 @@ export async function seedDefaultReminders(userId: string) {
   ]);
 }
 
-/** Return due reminders for a given local hh:mm + weekday (not yet sent today). */
-export async function getDueReminders(hhmm: string, weekday: number, date: string) {
+interface DueReminder {
+  id: string;
+  kind: "meal_log" | "workout" | "weigh_in";
+  user_id: string;
+  time_local: string;
+  last_sent_on: string | null;
+  app_users: { line_user_id: string };
+}
+
+/**
+ * Return reminders due "now" for a given weekday. Instead of matching the exact
+ * minute (fragile when a free scheduler fires late), we fire any reminder whose
+ * scheduled time has passed within the last `windowMin` minutes and hasn't been
+ * sent today. `last_sent_on` guarantees at-most-once per day.
+ */
+export async function getDueReminders(
+  nowMinutes: number,
+  weekday: number,
+  date: string,
+  windowMin = 90,
+): Promise<DueReminder[]> {
   const { data } = await db()
     .from("reminders")
     .select("*, app_users!inner(line_user_id)")
     .eq("enabled", true)
-    .eq("time_local", hhmm)
     .contains("days", [weekday]);
-  return (data ?? []).filter(
-    (r: Record<string, unknown>) => r.last_sent_on !== date,
-  ) as Array<{
-    id: string;
-    kind: "meal_log" | "workout" | "weigh_in";
-    user_id: string;
-    app_users: { line_user_id: string };
-  }>;
+  const rows = (data ?? []) as unknown as DueReminder[];
+  return rows.filter((r) => {
+    if (r.last_sent_on === date) return false;
+    const [h, m] = r.time_local.split(":").map(Number);
+    const sched = h * 60 + m;
+    const delta = nowMinutes - sched;
+    return delta >= 0 && delta < windowMin;
+  });
 }
 
 export async function markReminderSent(id: string, date: string) {

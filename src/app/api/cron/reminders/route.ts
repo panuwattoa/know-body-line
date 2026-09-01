@@ -26,8 +26,8 @@ export async function GET(req: Request) {
     }
   }
 
-  const { hhmm, weekday, date } = bkkParts();
-  const due = await getDueReminders(hhmm, weekday, date);
+  const { hour, minute, weekday, date } = bkkParts();
+  const due = await getDueReminders(hour * 60 + minute, weekday, date);
 
   let sent = 0;
   for (const r of due) {
@@ -40,5 +40,5 @@ export async function GET(req: Request) {
     sent++;
   }
 
-  return NextResponse.json({ ok: true, time: hhmm, weekday, checked: due.length, sent });
+  return NextResponse.json({ ok: true, time: `${hour}:${minute}`, weekday, checked: due.length, sent });
 }

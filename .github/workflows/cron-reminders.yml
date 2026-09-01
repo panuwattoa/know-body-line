@@ -1,0 +1,22 @@
+name: KnowBody reminders
+
+# Free alternative to Vercel Cron (Hobby plan allows only daily crons).
+# Pings the reminders endpoint every 15 minutes. GitHub may delay scheduled
+# runs under load, so the endpoint fires any reminder whose time passed within
+# the last window and wasn't sent today (see getDueReminders).
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {} # allow manual "Run workflow" for testing
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger reminders
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS -X GET "$APP_BASE_URL/api/cron/reminders" \
+            -H "Authorization: Bearer $CRON_SECRET"
