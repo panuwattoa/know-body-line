@@ -22,6 +22,7 @@ export const LIFF_IDS = {
   history: process.env.NEXT_PUBLIC_LIFF_ID_HISTORY || "",
   report: process.env.NEXT_PUBLIC_LIFF_ID_REPORT || "",
   profile: process.env.NEXT_PUBLIC_LIFF_ID_PROFILE || "",
+  reminders: process.env.NEXT_PUBLIC_LIFF_ID_REMINDERS || "",
 } as const;
 
 /**

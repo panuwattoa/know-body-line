@@ -345,6 +345,7 @@ export function mainQuickReply(): QuickReply {
       { type: "action", action: { type: "message", label: "🏋️ ออกกำลังกายอะไรดี", text: "วันนี้ออกกำลังกายอะไรดี" } },
       { type: "action", action: { type: "uri", label: "📋 ประวัติ", uri: liffUrl(LIFF_IDS.history, "/liff/history") } },
       { type: "action", action: { type: "uri", label: "📊 รายงาน", uri: liffUrl(LIFF_IDS.report, "/liff/report") } },
+      { type: "action", action: { type: "uri", label: "⏰ ตั้งเตือน", uri: liffUrl(LIFF_IDS.reminders, "/liff/reminders") } },
     ],
   };
 }

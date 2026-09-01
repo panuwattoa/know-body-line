@@ -334,6 +334,61 @@ export async function seedDefaultReminders(userId: string) {
   ]);
 }
 
+export type ReminderKind = "meal_log" | "workout" | "weigh_in";
+
+export async function listReminders(userId: string) {
+  const { data } = await db()
+    .from("reminders")
+    .select("id,kind,time_local,days,enabled")
+    .eq("user_id", userId)
+    .order("time_local", { ascending: true });
+  return (data ?? []) as Array<{
+    id: string;
+    kind: ReminderKind;
+    time_local: string;
+    days: number[];
+    enabled: boolean;
+  }>;
+}
+
+export async function createReminder(
+  userId: string,
+  input: { kind: ReminderKind; time_local: string; days: number[]; enabled?: boolean },
+) {
+  const { data, error } = await db()
+    .from("reminders")
+    .insert({
+      user_id: userId,
+      kind: input.kind,
+      time_local: input.time_local,
+      days: input.days,
+      enabled: input.enabled ?? true,
+    })
+    .select("id,kind,time_local,days,enabled")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateReminder(
+  userId: string,
+  id: string,
+  patch: Partial<{ kind: ReminderKind; time_local: string; days: number[]; enabled: boolean }>,
+) {
+  const { data } = await db()
+    .from("reminders")
+    .update(patch)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select("id,kind,time_local,days,enabled")
+    .maybeSingle();
+  return data;
+}
+
+export async function deleteReminder(userId: string, id: string) {
+  await db().from("reminders").delete().eq("id", id).eq("user_id", userId);
+}
+
 interface DueReminder {
   id: string;
   kind: "meal_log" | "workout" | "weigh_in";
